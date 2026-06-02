@@ -3,6 +3,7 @@ import cv2
 import torch
 import numpy as np
 import time
+import shutil
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from ultralytics import YOLO
@@ -20,6 +21,19 @@ model = YOLO('yolov8n.pt')
 def process_media():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
+    
+    # --- AUTOMATIC CLEANUP INJECTED HERE ---
+    # This securely deletes old test frames/videos from the directory before processing
+    if os.path.exists(RESULT_FOLDER):
+        for filename in os.listdir(RESULT_FOLDER):
+            file_path = os.path.join(RESULT_FOLDER, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print(f"Directory clear warning: {e}")
     
     file = request.files['file']
     ext = os.path.splitext(file.filename)[1].lower()
